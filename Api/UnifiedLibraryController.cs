@@ -87,6 +87,17 @@ public class UnifiedLibraryController : ControllerBase
         return Ok(new { Years = years });
     }
 
+    [HttpGet("Config")]
+    [AllowAnonymous]
+    public ActionResult GetConfig()
+    {
+        var config = Plugin.Instance?.Configuration;
+        if (config == null)
+            return Ok(new { PageSize = 100 });
+
+        return Ok(new { PageSize = config.DefaultPageSize });
+    }
+
     [HttpGet("Page")]
     [AllowAnonymous]
     public ActionResult GetPage()

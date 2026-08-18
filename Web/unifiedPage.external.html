@@ -663,8 +663,23 @@
                     return;
                 }
 
-                restoreState();
+                // Сначала загружаем конфиг, ПОТОМ всё остальное
+                fetch('/Plugin/UnifiedLibrary/Config')
+                    .then(function (r) { return r.json(); })
+                    .then(function (cfg) {
+                        if (cfg.PageSize && cfg.PageSize > 0) {
+                            state.limit = cfg.PageSize;
+                        }
+                        afterConfigLoaded();
+                    })
+                    .catch(function () {
+                        // Если конфиг не загрузился, используем limit по умолчанию
+                        afterConfigLoaded();
+                    });
+            }
 
+            function afterConfigLoaded() {
+                restoreState();
                 searchInput.value = state.searchTerm;
                 buildStatusRadios();
                 buildSortRadios();
