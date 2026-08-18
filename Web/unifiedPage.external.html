@@ -237,388 +237,444 @@
     </style>
 
     <script>
-    (function () {
-        'use strict';
+        (function () {
+            'use strict';
 
-        var itemsContainer = document.getElementById('itemsContainer');
-        var searchInput    = document.getElementById('searchInput');
-        var btnFilter      = document.getElementById('btnFilter');
-        var btnSort        = document.getElementById('btnSort');
-        var btnSortOrder   = document.getElementById('btnSortOrder');
-        var sortOrderIcon  = document.getElementById('sortOrderIcon');
-        var filterMenu     = document.getElementById('filterMenu');
-        var sortMenu       = document.getElementById('sortMenu');
-        var genreBox       = document.getElementById('genreCheckboxes');
-        var yearBox        = document.getElementById('yearCheckboxes');
-        var statusBox      = document.getElementById('statusRadios');
-        var sortBox        = document.getElementById('sortRadios');
-        var btnApply       = document.getElementById('btnApply');
-        var btnClear       = document.getElementById('btnClear');
-        var prevBtn        = document.getElementById('prevBtn');
-        var nextBtn        = document.getElementById('nextBtn');
-        var pageInfo       = document.getElementById('pageInfo');
+            var itemsContainer = document.getElementById('itemsContainer');
+            var searchInput = document.getElementById('searchInput');
+            var btnFilter = document.getElementById('btnFilter');
+            var btnSort = document.getElementById('btnSort');
+            var btnSortOrder = document.getElementById('btnSortOrder');
+            var sortOrderIcon = document.getElementById('sortOrderIcon');
+            var filterMenu = document.getElementById('filterMenu');
+            var sortMenu = document.getElementById('sortMenu');
+            var genreBox = document.getElementById('genreCheckboxes');
+            var yearBox = document.getElementById('yearCheckboxes');
+            var statusBox = document.getElementById('statusRadios');
+            var sortBox = document.getElementById('sortRadios');
+            var btnApply = document.getElementById('btnApply');
+            var btnClear = document.getElementById('btnClear');
+            var prevBtn = document.getElementById('prevBtn');
+            var nextBtn = document.getElementById('nextBtn');
+            var pageInfo = document.getElementById('pageInfo');
 
-        var state = {
-            userId: null, serverId: null,
-            startIndex: 0, limit: 100,
-            sortBy: 'SortName', sortOrder: 'Ascending',
-            searchTerm: '', genres: [], years: [], status: '',
-            totalCount: 0
-        };
+            var state = {
+                userId: null, serverId: null,
+                startIndex: 0, limit: 50,
+                sortBy: 'SortName', sortOrder: 'Ascending',
+                searchTerm: '', genres: [], years: [], status: '',
+                totalCount: 0
+            };
 
-        function api() { return window.ApiClient || (window.parent && window.parent.ApiClient); }
+            /* ===== sessionStorage ===== */
+            var STORAGE_KEY = 'unifiedLibraryPageState';
 
-        /* ===== Загрузка жанров ===== */
-        function loadGenres() {
-            var c = api(); if (!c || !state.userId) return;
-            fetch('/Genres?userId=' + state.userId + '&Recursive=true&IncludeItemTypes=Movie&SortBy=SortName&SortOrder=Ascending&Limit=200',
-                  { headers: { 'X-Emby-Token': c.accessToken() } })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                var items = d.Items || [];
-                genreBox.innerHTML = '';
-                for (var i = 0; i < items.length; i++) {
-                    var lbl = document.createElement('label');
-                    var cb  = document.createElement('input');
-                    cb.type = 'checkbox'; cb.value = items[i].Name;
-                    cb.checked = state.genres.indexOf(items[i].Name) !== -1;
-                    var sp  = document.createElement('span');
-                    sp.textContent = items[i].Name;
-                    lbl.appendChild(cb); lbl.appendChild(sp);
-                    genreBox.appendChild(lbl);
-                }
-            }).catch(function () {});
-        }
-
-        /* ===== Загрузка годов ===== */
-        function loadYears() {
-            var c = api(); if (!c || !state.userId) return;
-            fetch('/Plugin/UnifiedLibrary/Filters?userId=' + state.userId,
-                  { headers: { 'X-Emby-Token': c.accessToken() } })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                var yrs = d.Years || [];
-                yearBox.innerHTML = '';
-                for (var i = 0; i < yrs.length; i++) {
-                    var lbl = document.createElement('label');
-                    var cb  = document.createElement('input');
-                    cb.type = 'checkbox'; cb.value = String(yrs[i]);
-                    cb.checked = state.years.indexOf(yrs[i]) !== -1;
-                    var sp  = document.createElement('span');
-                    sp.textContent = String(yrs[i]);
-                    lbl.appendChild(cb); lbl.appendChild(sp);
-                    yearBox.appendChild(lbl);
-                }
-            }).catch(function () {});
-        }
-
-        /* ===== Радиокнопки статуса ===== */
-        function buildStatusRadios() {
-            var opts = [
-                { v: '',         t: 'Все' },
-                { v: 'played',   t: 'Просмотрено' },
-                { v: 'unplayed', t: 'Не просмотрено' },
-                { v: 'favorite', t: 'Избранное' }
-            ];
-            statusBox.innerHTML = '';
-            for (var i = 0; i < opts.length; i++) {
-                var lbl = document.createElement('label');
-                var rb  = document.createElement('input');
-                rb.type = 'radio'; rb.name = 'ulStatus'; rb.value = opts[i].v;
-                rb.checked = (state.status === opts[i].v);
-                var sp = document.createElement('span');
-                sp.textContent = opts[i].t;
-                lbl.appendChild(rb); lbl.appendChild(sp);
-                statusBox.appendChild(lbl);
+            function saveState() {
+                try {
+                    var data = {
+                        startIndex: state.startIndex,
+                        sortBy: state.sortBy,
+                        sortOrder: state.sortOrder,
+                        searchTerm: state.searchTerm,
+                        genres: state.genres,
+                        years: state.years,
+                        status: state.status
+                    };
+                    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                } catch (e) { }
             }
-        }
 
-        /* ===== Радиокнопки сортировки с автоприменением ===== */
-        function buildSortRadios() {
-            var opts = [
-                { v: 'SortName',       t: 'Название',        defaultOrder: 'Ascending'  },
-                { v: 'ProductionYear', t: 'Год',             defaultOrder: 'Descending' },
-                { v: 'DateCreated',    t: 'Дата добавления', defaultOrder: 'Descending' },
-                { v: 'PremiereDate',   t: 'Дата премьеры',   defaultOrder: 'Descending' },
-                { v: 'CommunityRating',t: 'Рейтинг',         defaultOrder: 'Descending' },
-                { v: 'Runtime',        t: 'Длительность',    defaultOrder: 'Descending' },
-                { v: 'Random',         t: 'Случайно',        defaultOrder: 'Ascending'  }
-            ];
-            sortBox.innerHTML = '';
-            for (var i = 0; i < opts.length; i++) {
-                var lbl = document.createElement('label');
-                var rb  = document.createElement('input');
-                rb.type = 'radio'; rb.name = 'ulSort'; rb.value = opts[i].v;
-                rb.checked = (state.sortBy === opts[i].v);
-                rb.dataset.defaultOrder = opts[i].defaultOrder;
-                var sp = document.createElement('span');
-                sp.textContent = opts[i].t;
-                lbl.appendChild(rb); lbl.appendChild(sp);
-                sortBox.appendChild(lbl);
+            function restoreState() {
+                try {
+                    var raw = sessionStorage.getItem(STORAGE_KEY);
+                    if (!raw) return;
+                    var data = JSON.parse(raw);
+                    if (data.startIndex !== undefined) state.startIndex = data.startIndex;
+                    if (data.sortBy) state.sortBy = data.sortBy;
+                    if (data.sortOrder) state.sortOrder = data.sortOrder;
+                    if (data.searchTerm !== undefined) state.searchTerm = data.searchTerm;
+                    if (data.genres) state.genres = data.genres;
+                    if (data.years) state.years = data.years;
+                    if (data.status !== undefined) state.status = data.status;
+                } catch (e) { }
+            }
 
-                rb.addEventListener('change', function () {
-                    if (!this.checked) return;
-                    state.sortBy = this.value;
-                    state.sortOrder = this.dataset.defaultOrder;
-                    updateSortOrderIcon();
-                    state.startIndex = 0;
-                    loadItems();
+            function api() { return window.ApiClient || (window.parent && window.parent.ApiClient); }
+
+            /* ===== Загрузка жанров ===== */
+            function loadGenres() {
+                var c = api(); if (!c || !state.userId) return;
+                fetch('/Genres?userId=' + state.userId + '&Recursive=true&IncludeItemTypes=Movie&SortBy=SortName&SortOrder=Ascending&Limit=200',
+                    { headers: { 'X-Emby-Token': c.accessToken() } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        var items = d.Items || [];
+                        genreBox.innerHTML = '';
+                        for (var i = 0; i < items.length; i++) {
+                            var lbl = document.createElement('label');
+                            var cb = document.createElement('input');
+                            cb.type = 'checkbox'; cb.value = items[i].Name;
+                            cb.checked = state.genres.indexOf(items[i].Name) !== -1;
+                            var sp = document.createElement('span');
+                            sp.textContent = items[i].Name;
+                            lbl.appendChild(cb); lbl.appendChild(sp);
+                            genreBox.appendChild(lbl);
+                        }
+                    }).catch(function () { });
+            }
+
+            /* ===== Загрузка годов ===== */
+            function loadYears() {
+                var c = api(); if (!c || !state.userId) return;
+                fetch('/Plugin/UnifiedLibrary/Filters?userId=' + state.userId,
+                    { headers: { 'X-Emby-Token': c.accessToken() } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        var yrs = d.Years || [];
+                        yearBox.innerHTML = '';
+                        for (var i = 0; i < yrs.length; i++) {
+                            var lbl = document.createElement('label');
+                            var cb = document.createElement('input');
+                            cb.type = 'checkbox'; cb.value = String(yrs[i]);
+                            cb.checked = state.years.indexOf(yrs[i]) !== -1;
+                            var sp = document.createElement('span');
+                            sp.textContent = String(yrs[i]);
+                            lbl.appendChild(cb); lbl.appendChild(sp);
+                            yearBox.appendChild(lbl);
+                        }
+                    }).catch(function () { });
+            }
+
+            /* ===== Радиокнопки статуса ===== */
+            function buildStatusRadios() {
+                var opts = [
+                    { v: '', t: 'Все' },
+                    { v: 'played', t: 'Просмотрено' },
+                    { v: 'unplayed', t: 'Не просмотрено' },
+                    { v: 'favorite', t: 'Избранное' }
+                ];
+                statusBox.innerHTML = '';
+                for (var i = 0; i < opts.length; i++) {
+                    var lbl = document.createElement('label');
+                    var rb = document.createElement('input');
+                    rb.type = 'radio'; rb.name = 'ulStatus'; rb.value = opts[i].v;
+                    rb.checked = (state.status === opts[i].v);
+                    var sp = document.createElement('span');
+                    sp.textContent = opts[i].t;
+                    lbl.appendChild(rb); lbl.appendChild(sp);
+                    statusBox.appendChild(lbl);
+                }
+            }
+
+            /* ===== Радиокнопки сортировки с автоприменением ===== */
+            function buildSortRadios() {
+                var opts = [
+                    { v: 'SortName', t: 'Название', defaultOrder: 'Ascending' },
+                    { v: 'ProductionYear', t: 'Год', defaultOrder: 'Descending' },
+                    { v: 'DateCreated', t: 'Дата добавления', defaultOrder: 'Descending' },
+                    { v: 'PremiereDate', t: 'Дата премьеры', defaultOrder: 'Descending' },
+                    { v: 'CommunityRating', t: 'Рейтинг', defaultOrder: 'Descending' },
+                    { v: 'Runtime', t: 'Длительность', defaultOrder: 'Descending' },
+                    { v: 'Random', t: 'Случайно', defaultOrder: 'Ascending' }
+                ];
+                sortBox.innerHTML = '';
+                for (var i = 0; i < opts.length; i++) {
+                    var lbl = document.createElement('label');
+                    var rb = document.createElement('input');
+                    rb.type = 'radio'; rb.name = 'ulSort'; rb.value = opts[i].v;
+                    rb.checked = (state.sortBy === opts[i].v);
+                    rb.dataset.defaultOrder = opts[i].defaultOrder;
+                    var sp = document.createElement('span');
+                    sp.textContent = opts[i].t;
+                    lbl.appendChild(rb); lbl.appendChild(sp);
+                    sortBox.appendChild(lbl);
+
+                    rb.addEventListener('change', function () {
+                        if (!this.checked) return;
+                        state.sortBy = this.value;
+                        state.sortOrder = this.dataset.defaultOrder;
+                        updateSortOrderIcon();
+                        state.startIndex = 0;
+                        saveState();
+                        sortMenu.style.display = 'none';
+                        loadItems();
+                    });
+                }
+            }
+
+            /* ===== Иконка направления сортировки ===== */
+            function updateSortOrderIcon() {
+                if (state.sortOrder === 'Ascending') {
+                    sortOrderIcon.textContent = 'arrow_upward';
+                    btnSortOrder.title = 'По возрастанию (клик для убывания)';
+                } else {
+                    sortOrderIcon.textContent = 'arrow_downward';
+                    btnSortOrder.title = 'По убыванию (клик для возрастания)';
+                }
+            }
+
+            /* ===== Применение фильтров ===== */
+            function applyFilters() {
+                state.genres = [];
+                var gc = genreBox.querySelectorAll('input:checked');
+                for (var i = 0; i < gc.length; i++) state.genres.push(gc[i].value);
+
+                state.years = [];
+                var yc = yearBox.querySelectorAll('input:checked');
+                for (var i = 0; i < yc.length; i++) state.years.push(parseInt(yc[i].value, 10));
+
+                var sr = statusBox.querySelector('input:checked');
+                state.status = sr ? sr.value : '';
+
+                filterMenu.style.display = 'none';
+                state.startIndex = 0;
+                saveState();
+                loadItems();
+            }
+
+            /* ===== Сброс фильтров ===== */
+            function clearFilters() {
+                state.genres = []; state.years = []; state.status = '';
+                buildStatusRadios();
+                loadGenres();
+                loadYears();
+                state.startIndex = 0;
+                saveState();
+                loadItems();
+            }
+
+            /* ===== Создание карточки ===== */
+            function createCard(item) {
+                var card = document.createElement('div');
+                card.className = 'card portraitCard card-hoverable';
+                card.setAttribute('data-id', item.Id);
+
+                var box = document.createElement('div');
+                box.className = 'cardBox';
+
+                var scalable = document.createElement('div');
+                scalable.className = 'cardScalable';
+
+                var padder = document.createElement('div');
+                padder.className = 'cardPadder';
+                scalable.appendChild(padder);
+
+                var imgC = document.createElement('div');
+                imgC.className = 'cardImage';
+                if (item.ImageTags && item.ImageTags.Primary) {
+                    var img = document.createElement('img');
+                    img.src = '/Items/' + item.Id + '/Images/Primary?maxWidth=400&tag=' + encodeURIComponent(item.ImageTags.Primary);
+                    img.loading = 'lazy';
+                    img.alt = item.Name || '';
+                    imgC.appendChild(img);
+                } else {
+                    var ic = document.createElement('span');
+                    ic.className = 'material-icons cardImageIcon';
+                    ic.textContent = 'movie';
+                    imgC.appendChild(ic);
+                }
+                scalable.appendChild(imgC);
+
+                var overlay = document.createElement('div');
+                overlay.className = 'cardOverlayContainer';
+                var obr = document.createElement('div');
+                obr.className = 'cardOverlayButton-br';
+                var pb = document.createElement('button');
+                pb.className = 'cardOverlayButton';
+                pb.title = 'Воспроизвести';
+                var pi = document.createElement('span');
+                pi.className = 'material-icons play_arrow';
+                pb.appendChild(pi);
+                (function (id) {
+                    pb.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); playItem(id); });
+                })(item.Id);
+                obr.appendChild(pb);
+                overlay.appendChild(obr);
+                scalable.appendChild(overlay);
+
+                box.appendChild(scalable);
+
+                var t1 = document.createElement('div');
+                t1.className = 'cardText cardText-first';
+                t1.textContent = item.Name || '';
+                (function (id) {
+                    t1.addEventListener('click', function (e) { e.stopPropagation(); openDetails(id); });
+                })(item.Id);
+                box.appendChild(t1);
+
+                var t2 = document.createElement('div');
+                t2.className = 'cardText cardText-secondary';
+                t2.textContent = item.ProductionYear ? String(item.ProductionYear) : '';
+                box.appendChild(t2);
+
+                card.appendChild(box);
+
+                (function (id) {
+                    card.addEventListener('click', function () { openDetails(id); });
+                })(item.Id);
+
+                return card;
+            }
+
+            function openDetails(id) {
+                window.location.hash = '#!/details?id=' + id;
+            }
+
+            function playItem(id) {
+                var c = api();
+                if (!c) { openDetails(id); return; }
+                c.getItem(state.userId, id).then(function (item) {
+                    if (window.playbackManager) { window.playbackManager.play({ items: [item] }); }
+                    else { openDetails(id); }
+                }).catch(function () {
+                    openDetails(id);
                 });
             }
-        }
 
-        /* ===== Иконка направления сортировки ===== */
-        function updateSortOrderIcon() {
-            if (state.sortOrder === 'Ascending') {
-                sortOrderIcon.textContent = 'arrow_upward';
-                btnSortOrder.title = 'По возрастанию (клик для убывания)';
-            } else {
-                sortOrderIcon.textContent = 'arrow_downward';
-                btnSortOrder.title = 'По убыванию (клик для возрастания)';
+            /* ===== Рендер ===== */
+            function renderItems(items) {
+                itemsContainer.innerHTML = '';
+                if (!items || items.length === 0) {
+                    itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Ничего не найдено</div>';
+                    return;
+                }
+                var frag = document.createDocumentFragment();
+                for (var i = 0; i < items.length; i++) frag.appendChild(createCard(items[i]));
+                itemsContainer.appendChild(frag);
             }
-        }
 
-        /* ===== Применение фильтров ===== */
-        function applyFilters() {
-            state.genres = [];
-            var gc = genreBox.querySelectorAll('input:checked');
-            for (var i = 0; i < gc.length; i++) state.genres.push(gc[i].value);
-
-            state.years = [];
-            var yc = yearBox.querySelectorAll('input:checked');
-            for (var i = 0; i < yc.length; i++) state.years.push(parseInt(yc[i].value, 10));
-
-            var sr = statusBox.querySelector('input:checked');
-            state.status = sr ? sr.value : '';
-
-            filterMenu.style.display = 'none';
-            state.startIndex = 0;
-            loadItems();
-        }
-
-        /* ===== Сброс фильтров ===== */
-        function clearFilters() {
-            state.genres = []; state.years = []; state.status = '';
-            buildStatusRadios();
-            var all = filterMenu.querySelectorAll('input[type="checkbox"]');
-            for (var i = 0; i < all.length; i++) all[i].checked = false;
-            state.startIndex = 0;
-            loadItems();
-        }
-
-        /* ===== Создание карточки ===== */
-        function createCard(item) {
-            var card = document.createElement('div');
-            card.className = 'card portraitCard card-hoverable';
-            card.setAttribute('data-id', item.Id);
-
-            var box = document.createElement('div');
-            box.className = 'cardBox';
-
-            var scalable = document.createElement('div');
-            scalable.className = 'cardScalable';
-
-            var padder = document.createElement('div');
-            padder.className = 'cardPadder';
-            scalable.appendChild(padder);
-
-            var imgC = document.createElement('div');
-            imgC.className = 'cardImage';
-            if (item.ImageTags && item.ImageTags.Primary) {
-                var img = document.createElement('img');
-                img.src = '/Items/' + item.Id + '/Images/Primary?maxWidth=400&tag=' + encodeURIComponent(item.ImageTags.Primary);
-                img.loading = 'lazy';
-                img.alt = item.Name || '';
-                imgC.appendChild(img);
-            } else {
-                var ic = document.createElement('span');
-                ic.className = 'material-icons cardImageIcon';
-                ic.textContent = 'movie';
-                imgC.appendChild(ic);
+            /* ===== Построение URL запроса ===== */
+            function buildUrl() {
+                var u = '/Plugin/UnifiedLibrary/Items';
+                u += '?userId=' + state.userId;
+                u += '&StartIndex=' + state.startIndex;
+                u += '&Limit=' + state.limit;
+                u += '&SortBy=' + encodeURIComponent(state.sortBy);
+                u += '&SortOrder=' + state.sortOrder;
+                u += '&Recursive=true';
+                u += '&IncludeItemTypes=Movie';
+                u += '&Fields=PrimaryImageAspectRatio,SortName,DateCreated';
+                u += '&ImageTypeLimit=1';
+                u += '&EnableImageTypes=Primary';
+                if (state.searchTerm) u += '&SearchTerm=' + encodeURIComponent(state.searchTerm);
+                for (var i = 0; i < state.genres.length; i++) {
+                    u += '&Genres=' + encodeURIComponent(state.genres[i]);
+                }
+                for (var i = 0; i < state.years.length; i++) {
+                    u += '&Years=' + state.years[i];
+                }
+                if (state.status === 'played') u += '&IsPlayed=true';
+                if (state.status === 'unplayed') u += '&IsUnplayed=true';
+                if (state.status === 'favorite') u += '&IsFavorite=true';
+                return u;
             }
-            scalable.appendChild(imgC);
 
-            var overlay = document.createElement('div');
-            overlay.className = 'cardOverlayContainer';
-            var obr = document.createElement('div');
-            obr.className = 'cardOverlayButton-br';
-            var pb = document.createElement('button');
-            pb.className = 'cardOverlayButton';
-            pb.title = 'Воспроизвести';
-            var pi = document.createElement('span');
-            pi.className = 'material-icons play_arrow';
-            pb.appendChild(pi);
-            (function (id) {
-                pb.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); playItem(id); });
-            })(item.Id);
-            obr.appendChild(pb);
-            overlay.appendChild(obr);
-            scalable.appendChild(overlay);
+            /* ===== Загрузка данных ===== */
+            function loadItems() {
+                var c = api();
+                if (!c || !state.userId) return;
+                itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Загрузка...</div>';
 
-            box.appendChild(scalable);
+                fetch(buildUrl(), { headers: { 'X-Emby-Token': c.accessToken() } })
+                    .then(function (r) {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.json();
+                    })
+                    .then(function (d) {
+                        state.totalCount = d.TotalRecordCount || 0;
+                        renderItems(d.Items || []);
+                        updatePager();
+                    })
+                    .catch(function (e) {
+                        itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Ошибка: ' + e.message + '</div>';
+                    });
+            }
 
-            var t1 = document.createElement('div');
-            t1.className = 'cardText cardText-first';
-            t1.textContent = item.Name || '';
-            (function (id) {
-                t1.addEventListener('click', function (e) { e.stopPropagation(); openDetails(id); });
-            })(item.Id);
-            box.appendChild(t1);
+            function updatePager() {
+                var cp = Math.floor(state.startIndex / state.limit) + 1;
+                var tp = Math.max(1, Math.ceil(state.totalCount / state.limit));
+                pageInfo.textContent = cp + ' / ' + tp + '  (' + state.totalCount + ')';
+                prevBtn.disabled = state.startIndex <= 0;
+                nextBtn.disabled = (state.startIndex + state.limit) >= state.totalCount;
+            }
 
-            var t2 = document.createElement('div');
-            t2.className = 'cardText cardText-secondary';
-            t2.textContent = item.ProductionYear ? String(item.ProductionYear) : '';
-            box.appendChild(t2);
-
-            card.appendChild(box);
-
-            (function (id) {
-                card.addEventListener('click', function () { openDetails(id); });
-            })(item.Id);
-
-            return card;
-        }
-
-        function openDetails(id) {
-            window.location.hash = '#!/details?id=' + id;
-        }
-
-        function playItem(id) {
-            var c = api();
-            if (!c) { openDetails(id); return; }
-            c.getItem(state.userId, id).then(function (item) {
-                if (window.playbackManager) { window.playbackManager.play({ items: [item] }); }
-                else { openDetails(id); }
-            }).catch(function () {
-                openDetails(id);
+            /* ===== События ===== */
+            var searchTimer = null;
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(function () {
+                    state.searchTerm = searchInput.value.trim();
+                    state.startIndex = 0;
+                    saveState();
+                    loadItems();
+                }, 400);
             });
-        }
 
-        /* ===== Рендер ===== */
-        function renderItems(items) {
-            itemsContainer.innerHTML = '';
-            if (!items || items.length === 0) {
-                itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Ничего не найдено</div>';
-                return;
-            }
-            var frag = document.createDocumentFragment();
-            for (var i = 0; i < items.length; i++) frag.appendChild(createCard(items[i]));
-            itemsContainer.appendChild(frag);
-        }
-
-        /* ===== Построение URL запроса ===== */
-		function buildUrl() {
-			var u = '/Plugin/UnifiedLibrary/Items';
-			u += '?userId=' + state.userId;
-			u += '&StartIndex=' + state.startIndex;
-			u += '&Limit=' + state.limit;
-			u += '&SortBy=' + encodeURIComponent(state.sortBy);
-			u += '&SortOrder=' + state.sortOrder;
-			u += '&Recursive=true';
-			u += '&IncludeItemTypes=Movie';
-			// МИНИМАЛЬНЫЙ набор полей для карточек:
-			u += '&Fields=PrimaryImageAspectRatio,SortName,DateCreated';
-			u += '&ImageTypeLimit=1';
-			u += '&EnableImageTypes=Primary';
-			if (state.searchTerm) u += '&SearchTerm=' + encodeURIComponent(state.searchTerm);
-			for (var i = 0; i < state.genres.length; i++) {
-				u += '&Genres=' + encodeURIComponent(state.genres[i]);
-			}
-			for (var i = 0; i < state.years.length; i++) {
-				u += '&Years=' + state.years[i];
-			}
-			if (state.status === 'played')   u += '&IsPlayed=true';
-			if (state.status === 'unplayed') u += '&IsUnplayed=true';
-			if (state.status === 'favorite') u += '&IsFavorite=true';
-			return u;
-		}
-
-        /* ===== Загрузка данных ===== */
-        function loadItems() {
-            var c = api();
-            if (!c || !state.userId) return;
-            itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Загрузка...</div>';
-
-            fetch(buildUrl(), { headers: { 'X-Emby-Token': c.accessToken() } })
-            .then(function (r) {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-            })
-            .then(function (d) {
-                state.totalCount = d.TotalRecordCount || 0;
-                renderItems(d.Items || []);
-                updatePager();
-            })
-            .catch(function (e) {
-                itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Ошибка: ' + e.message + '</div>';
+            btnFilter.addEventListener('click', function (e) {
+                e.stopPropagation();
+                sortMenu.style.display = 'none';
+                filterMenu.style.display = filterMenu.style.display === 'none' ? 'block' : 'none';
             });
-        }
 
-        function updatePager() {
-            var cp = Math.floor(state.startIndex / state.limit) + 1;
-            var tp = Math.max(1, Math.ceil(state.totalCount / state.limit));
-            pageInfo.textContent = cp + ' / ' + tp + '  (' + state.totalCount + ')';
-            prevBtn.disabled = state.startIndex <= 0;
-            nextBtn.disabled = (state.startIndex + state.limit) >= state.totalCount;
-        }
+            btnSort.addEventListener('click', function (e) {
+                e.stopPropagation();
+                filterMenu.style.display = 'none';
+                sortMenu.style.display = sortMenu.style.display === 'none' ? 'block' : 'none';
+            });
 
-        /* ===== События ===== */
-        var searchTimer = null;
-        searchInput.addEventListener('input', function () {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(function () {
-                state.searchTerm = searchInput.value.trim();
+            btnSortOrder.addEventListener('click', function () {
+                state.sortOrder = state.sortOrder === 'Ascending' ? 'Descending' : 'Ascending';
+                updateSortOrderIcon();
                 state.startIndex = 0;
+                saveState();
                 loadItems();
-            }, 400);
-        });
+            });
 
-        btnFilter.addEventListener('click', function (e) {
-            e.stopPropagation();
-            sortMenu.style.display = 'none';
-            filterMenu.style.display = filterMenu.style.display === 'none' ? 'block' : 'none';
-        });
+            btnApply.addEventListener('click', applyFilters);
+            btnClear.addEventListener('click', clearFilters);
 
-        btnSort.addEventListener('click', function (e) {
-            e.stopPropagation();
-            filterMenu.style.display = 'none';
-            sortMenu.style.display = sortMenu.style.display === 'none' ? 'block' : 'none';
-        });
+            document.addEventListener('click', function (e) {
+                if (!filterMenu.contains(e.target) && e.target !== btnFilter) filterMenu.style.display = 'none';
+                if (!sortMenu.contains(e.target) && e.target !== btnSort) sortMenu.style.display = 'none';
+            });
 
-        btnSortOrder.addEventListener('click', function () {
-            state.sortOrder = state.sortOrder === 'Ascending' ? 'Descending' : 'Ascending';
-            updateSortOrderIcon();
-            state.startIndex = 0;
-            loadItems();
-        });
+            prevBtn.addEventListener('click', function () {
+                state.startIndex = Math.max(0, state.startIndex - state.limit);
+                saveState();
+                loadItems();
+            });
+            nextBtn.addEventListener('click', function () {
+                state.startIndex += state.limit;
+                saveState();
+                loadItems();
+            });
 
-        btnApply.addEventListener('click', applyFilters);
-        btnClear.addEventListener('click', clearFilters);
+            /* ===== Инициализация ===== */
+            function init() {
+                var c = api();
+                if (!c) {
+                    itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">ApiClient не найден</div>';
+                    return;
+                }
+                state.userId = c.getCurrentUserId();
+                state.serverId = c.serverId();
+                if (!state.userId) {
+                    itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Пользователь не определён</div>';
+                    return;
+                }
 
-        document.addEventListener('click', function (e) {
-            if (!filterMenu.contains(e.target) && e.target !== btnFilter) filterMenu.style.display = 'none';
-            if (!sortMenu.contains(e.target) && e.target !== btnSort) sortMenu.style.display = 'none';
-        });
+                restoreState();
 
-        prevBtn.addEventListener('click', function () { state.startIndex = Math.max(0, state.startIndex - state.limit); loadItems(); });
-        nextBtn.addEventListener('click', function () { state.startIndex += state.limit; loadItems(); });
-
-        /* ===== Инициализация ===== */
-        function init() {
-            var c = api();
-            if (!c) { itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">ApiClient не найден</div>'; return; }
-            state.userId = c.getCurrentUserId();
-            state.serverId = c.serverId();
-            if (!state.userId) { itemsContainer.innerHTML = '<div style="text-align:center;padding:3em;color:#999;">Пользователь не определён</div>'; return; }
-            buildStatusRadios();
-            buildSortRadios();
-            loadGenres();
-            loadYears();
-            updateSortOrderIcon();
-            loadItems();
-        }
-
-        init();
-    })();
+                searchInput.value = state.searchTerm;
+                buildStatusRadios();
+                buildSortRadios();
+                updateSortOrderIcon();
+                loadGenres();
+                loadYears();
+                loadItems();
+            }
+        
+            init();
+        })();
     </script>
 </div>
