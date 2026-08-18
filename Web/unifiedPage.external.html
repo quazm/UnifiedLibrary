@@ -51,18 +51,76 @@
              class="itemsContainer vertical-wrap padded-left padded-right padded-top-page"></div>
 
         <div class="padded-left padded-right padded-bottom-page flex align-items-center"
-             style="justify-content:center;gap:.8em;margin-top:1em;">
-            <button id="prevBtn" class="raised button-submit" disabled style="padding:.4em .8em;">
-                <span class="material-icons" style="vertical-align:middle;">chevron_left</span>
+             style="justify-content:center;gap:.5em;margin-top:1em;flex-wrap:wrap;">
+            <button id="prevBtn" class="raised button-submit" disabled style="padding:.3em .6em;">
+                <span class="material-icons" style="vertical-align:middle;font-size:1.2em;">chevron_left</span>
             </button>
-            <span id="pageInfo" style="color:#aaa;font-size:.9em;"></span>
-            <button id="nextBtn" class="raised button-submit" disabled style="padding:.4em .8em;">
-                <span class="material-icons" style="vertical-align:middle;">chevron_right</span>
+            <div id="pageNumbers" class="ulPageNumbers"></div>
+            <button id="nextBtn" class="raised button-submit" disabled style="padding:.3em .6em;">
+                <span class="material-icons" style="vertical-align:middle;font-size:1.2em;">chevron_right</span>
             </button>
+            <div class="ulPageJump">
+                <input id="pageInput" type="number" min="1" class="emby-input" placeholder="Стр." style="width:4.5em;padding:.3em;text-align:center;" />
+                <button id="btnGoPage" class="raised button-submit" style="padding:.3em .6em;">Перейти</button>
+            </div>
         </div>
     </div>
 
     <style>
+
+        .ulPageNumbers {
+            display: flex;
+            align-items: center;
+            gap: .2em;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .ulPageNum {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2em;
+            height: 2em;
+            padding: 0 .3em;
+            border-radius: .3em;
+            cursor: pointer;
+            color: #ccc;
+            font-size: .9em;
+            background: none;
+            border: none;
+            transition: background .15s,color .15s;
+        }
+
+            .ulPageNum:hover {
+                background: rgba(255,255,255,.1);
+                color: #fff;
+            }
+
+            .ulPageNum.active {
+                background: #00a4dc;
+                color: #fff;
+                cursor: default;
+                font-weight: bold;
+            }
+
+            .ulPageNum.dots {
+                cursor: default;
+                color: #666;
+            }
+
+                .ulPageNum.dots:hover {
+                    background: none;
+                    color: #666;
+                }
+
+        .ulPageJump {
+            display: flex;
+            align-items: center;
+            gap: .4em;
+            margin-left: .8em;
+        }
+
         .ulFilterMenu {
             position: fixed;
             top: 5em;
@@ -590,12 +648,85 @@
                     });
             }
 
-            function updatePager() {
-                var cp = Math.floor(state.startIndex / state.limit) + 1;
-                var tp = Math.max(1, Math.ceil(state.totalCount / state.limit));
-                pageInfo.textContent = cp + ' / ' + tp + '  (' + state.totalCount + ')';
+            /* ===== Пагинация ===== */
+            function getPageNumbers(current, total) {
+                var pages = [];
+                if (total <= 9) {
+                    for (var i = 1; i <= total; i++) pages.push(i);
+                    return pages;
+                }
+
+                pages.push(1);
+
+                var start = Math.max(2, current - 2);
+                var end = Math.min(total - 1, current + 2);
+
+                if (current <= 4) {
+                    start = 2;
+                    end = 6;
+                }
+                if (current >= total - 3) {
+                    start = total - 5;
+                    end = total - 1;
+                }
+
+                if (start > 2) pages.push('...');
+                for (var i = start; i <= end; i++) pages.push(i);
+                if (end < total - 1) pages.push('...');
+
+                pages.push(total);
+                return pages;
+            }
+
+            function renderPagination() {
+                var container = document.getElementById('pageNumbers');
+                container.innerHTML = '';
+
+                var currentPage = Math.floor(state.startIndex / state.limit) + 1;
+                var totalPages = Math.max(1, Math.ceil(state.totalCount / state.limit));
+
+                var pages = getPageNumbers(currentPage, totalPages);
+
+                for (var i = 0; i < pages.length; i++) {
+                    var p = pages[i];
+                    var btn = document.createElement('button');
+
+                    if (p === '...') {
+                        btn.className = 'ulPageNum dots';
+                        btn.textContent = '...';
+                    } else {
+                        btn.className = 'ulPageNum' + (p === currentPage ? ' active' : '');
+                        btn.textContent = String(p);
+                        if (p !== currentPage) {
+                            (function (pageNum) {
+                                btn.addEventListener('click', function () {
+                                    goToPage(pageNum);
+                                });
+                            })(p);
+                        }
+                    }
+                    container.appendChild(btn);
+                }
+
                 prevBtn.disabled = state.startIndex <= 0;
                 nextBtn.disabled = (state.startIndex + state.limit) >= state.totalCount;
+
+                var pageInput = document.getElementById('pageInput');
+                pageInput.max = totalPages;
+                pageInput.placeholder = '/' + totalPages;
+            }
+
+            function goToPage(pageNum) {
+                var totalPages = Math.max(1, Math.ceil(state.totalCount / state.limit));
+                if (pageNum < 1) pageNum = 1;
+                if (pageNum > totalPages) pageNum = totalPages;
+                state.startIndex = (pageNum - 1) * state.limit;
+                saveState();
+                loadItems();
+            }
+
+            function updatePager() {
+                renderPagination();
             }
 
             /* ===== События ===== */
@@ -647,6 +778,25 @@
                 state.startIndex += state.limit;
                 saveState();
                 loadItems();
+            });
+
+            document.getElementById('btnGoPage').addEventListener('click', function () {
+                var pageInput = document.getElementById('pageInput');
+                var val = parseInt(pageInput.value, 10);
+                if (!isNaN(val) && val > 0) {
+                    goToPage(val);
+                    pageInput.value = '';
+                }
+            });
+
+            document.getElementById('pageInput').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    var val = parseInt(this.value, 10);
+                    if (!isNaN(val) && val > 0) {
+                        goToPage(val);
+                        this.value = '';
+                    }
+                }
             });
 
             /* ===== Инициализация ===== */
