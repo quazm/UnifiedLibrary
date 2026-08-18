@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Unified Library Configuration</title>
+</head>
+<body>
+    <div id="UnifiedLibraryConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+        <div data-role="content">
+            <div class="content-primary">
+                <h1>Unified Library</h1>
+                <p>Плагин объединяет несколько библиотек в один общий каталог без пересканирования.</p>
+
+                <h2>Текущая конфигурация</h2>
+                <div id="configInfo">
+                    <p><strong>Статус:</strong> <span id="status">Загрузка...</span></p>
+                    <p><strong>Библиотеки:</strong> <span id="libraries">Загрузка...</span></p>
+                </div>
+
+                <h2>Доступ к объединённому каталогу</h2>
+                <p>Откройте страницу со всеми фильмами:</p>
+                <p><a href="#!/configurationpage?name=unifiedlibrary" class="button-link">Открыть "Все фильмы"</a></p>
+
+                <p>Или используйте прямой URL:</p>
+                <code id="directUrl" style="display: block; padding: 1em; background: #2a2a2a; border-radius: 4px; word-break: break-all;"></code>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const pluginId = 'AB354BE7-B44D-4C55-A548-E820558F19DA';
+
+            const statusEl = document.getElementById('status');
+            const librariesEl = document.getElementById('libraries');
+            const directUrlEl = document.getElementById('directUrl');
+
+            async function loadConfig() {
+                try {
+                    const response = await fetch(`/Plugins/${pluginId}/Configuration`);
+                    const config = await response.json();
+
+                    statusEl.textContent = config.Enabled ? 'Включён' : 'Выключен';
+
+                    if (config.IncludedLibraryIds && config.IncludedLibraryIds.length > 0) {
+                        librariesEl.textContent = config.IncludedLibraryIds.join(', ');
+                    } else {
+                        librariesEl.textContent = 'Библиотеки не выбраны';
+                    }
+
+                    const baseUrl = window.location.origin;
+                    directUrlEl.textContent = `${baseUrl}/web/index.html#!/configurationpage?name=unifiedlibrary`;
+                } catch (error) {
+                    console.error('Failed to load config:', error);
+                    statusEl.textContent = 'Ошибка загрузки';
+                    librariesEl.textContent = 'Ошибка';
+                }
+            }
+
+            loadConfig();
+        })();
+    </script>
+</body>
+</html>
