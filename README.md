@@ -1,5 +1,5 @@
 AI generated. Vs 2022.
-Тестировалось в jellyfin 10.11.11 + Plugin Pages 2.4.11.0 + File Transformation 2.5.11.0
+Тестировалось в jellyfin 10.11.11 + Plugin Pages 2.4.11.0 + File Transformation 2.5.11.0 (нужно поставить оба плагина предварительно добавив репозиторий https://www.iamparadox.dev/jellyfin/plugins/manifest.json)
 
 В конфиге плагина (<Server_Data>\plugins\configurations\UnifiedLibrary.xml) добавить guid библиотек (можно выдернуть из урл при открытии конкретной библиотеки), которые надо выводить как одну:
 ```xml
@@ -42,3 +42,8 @@ AI generated. Vs 2022.
     }
   ],
 ```
+
+Выглядит как говно, т.е. как-то вот так:
+
+<img width="1551" height="871" alt="{62C46B28-9157-41DE-BD53-676B0668EE45}" src="https://github.com/user-attachments/assets/3c542afe-83c4-460b-b532-3d645efd9e33" />
+
