@@ -1,9 +1,9 @@
 ﻿<div id="UnifiedLibraryPage" data-role="page" class="page libraryPage" style="padding-top:0 !important;">
     <div class="pageContainer">
 
-        <div class="padded-left padded-right padded-top-page">
+        <div class="padded-left padded-right padded-top-page" style="padding-bottom:1.5em;">
             <h1 class="pageTitle">Все фильмы</h1>
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.5em;margin-top:.5em;">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:.5em;margin-top:.5em;margin-left: .5em;">
                 <input id="searchInput" type="search"
                        class="emby-input" placeholder="Поиск..."
                        style="max-width:18em;padding:.5em;" />
@@ -81,6 +81,9 @@
     </div>
 
     <style>
+        /* === ТОЛЬКО НАШИ КЛАССЫ, которых нет в Jellyfin === */
+
+
         .ulFilterMenu {
             position: fixed;
             top: 5em;
@@ -95,49 +98,36 @@
             min-width: 16em;
             max-width: 22em;
         }
-
-        .ulFilterSection {
-            margin-bottom: 1em;
-        }
-
+        .ulFilterSection { margin-bottom: 1em; }
         .ulFilterHeader {
             font-size: .95em;
             color: #ccc;
             margin-bottom: .4em;
             font-weight: bold;
         }
-
-        .ulFilterList {
-            max-height: 12em;
-            overflow-y: auto;
+        .ulFilterList { max-height: 12em; overflow-y: auto; }
+        .ulFilterList label {
+            display: flex;
+            align-items: center;
+            gap: .5em;
+            padding: .3em 0;
+            cursor: pointer;
+            font-size: .9em;
         }
-
-            .ulFilterList label {
-                display: flex;
-                align-items: center;
-                gap: .5em;
-                padding: .3em 0;
-                cursor: pointer;
-                font-size: .9em;
-            }
-
-            .ulFilterList input[type="checkbox"],
-            .ulFilterList input[type="radio"] {
-                accent-color: #00a4dc;
-                margin: 0;
-            }
-
+        .ulFilterList input[type="checkbox"],
+        .ulFilterList input[type="radio"] {
+            accent-color: #00a4dc;
+            margin: 0;
+        }
         .ulFilterActions {
             display: flex;
             gap: .5em;
             margin-top: .5em;
         }
-
-            .ulFilterActions button {
-                flex: 1;
-                padding: .5em;
-            }
-
+        .ulFilterActions button {
+            flex: 1;
+            padding: .5em;
+        }
         .ulPageNumbers {
             display: flex;
             align-items: center;
@@ -145,7 +135,6 @@
             flex-wrap: wrap;
             justify-content: center;
         }
-
         .ulPageNum {
             display: inline-flex;
             align-items: center;
@@ -161,153 +150,29 @@
             border: none;
             transition: background .15s, color .15s;
         }
-
-            .ulPageNum:hover {
-                background: rgba(255,255,255,.1);
-                color: #fff;
-            }
-
-            .ulPageNum.active {
-                background: #00a4dc;
-                color: #fff;
-                cursor: default;
-                font-weight: bold;
-            }
-
-            .ulPageNum.dots {
-                cursor: default;
-                color: #666;
-            }
-
-                .ulPageNum.dots:hover {
-                    background: none;
-                    color: #666;
-                }
-
+        .ulPageNum:hover {
+            background: rgba(255,255,255,.1);
+            color: #fff;
+        }
+        .ulPageNum.active {
+            background: #00a4dc;
+            color: #fff;
+            cursor: default;
+            font-weight: bold;
+        }
+        .ulPageNum.dots {
+            cursor: default;
+            color: #666;
+        }
+        .ulPageNum.dots:hover {
+            background: none;
+            color: #666;
+        }
         .ulPageJump {
             display: flex;
             align-items: center;
             gap: .4em;
             margin-left: .8em;
-        }
-
-        .card {
-            display: inline-block;
-            vertical-align: top;
-            margin: .4em;
-        }
-
-        .portraitCard {
-            width: 10em;
-        }
-
-        .cardScalable {
-            position: relative;
-            overflow: hidden;
-            border-radius: .3em;
-            background: #1a1a1a;
-        }
-
-        .cardPadder {
-            padding-bottom: 150%;
-            position: relative;
-        }
-
-        .cardImage {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-            .cardImage img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-
-        .cardImageIcon {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%,-50%);
-            font-size: 3em;
-            color: #555;
-        }
-
-        .cardOverlayContainer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity .2s;
-            background: rgba(0,0,0,.15);
-        }
-
-        .card:hover .cardOverlayContainer {
-            opacity: 1;
-        }
-
-        .cardOverlayButton-br {
-            position: absolute;
-            bottom: .3em;
-            right: .3em;
-        }
-
-        .cardOverlayButton {
-            background: rgba(0,0,0,.7);
-            border-radius: 50%;
-            width: 2.4em;
-            height: 2.4em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            cursor: pointer;
-            color: #fff;
-            padding: 0;
-            transition: background .15s, transform .15s;
-        }
-
-            .cardOverlayButton:hover {
-                background: rgba(0,0,0,.95);
-                transform: scale(1.15);
-            }
-
-        .cardBox {
-            padding-bottom: .3em;
-        }
-
-        .cardText {
-            margin-top: .3em;
-            font-size: .85em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-align: center;
-            color: #fff;
-            background: none;
-            border: none;
-            padding: 0;
-            width: 100%;
-            cursor: pointer;
-            display: block;
-        }
-
-        .cardText-secondary {
-            color: #999;
-            font-size: .8em;
-            cursor: default;
-        }
-
-        .card-hoverable:hover .cardScalable {
-            box-shadow: 0 .25em .8em rgba(0,0,0,.5);
-            transform: scale(1.03);
-            transition: transform .15s, box-shadow .15s;
         }
     </style>
 
@@ -548,7 +413,6 @@
 
                 if (window.playbackManager && typeof window.playbackManager.play === 'function') {
                     _playbackManagerCache = window.playbackManager;
-                    console.log('[UnifiedLibrary] playbackManager found in window.playbackManager');
                     return _playbackManagerCache;
                 }
 
@@ -564,7 +428,7 @@
                     webpackChunk.push([
                         [uniqueId],
                         {},
-                        function (require) {
+                        function(require) {
                             for (var c = 0; c < webpackChunk.length && !found; c++) {
                                 var chunk = webpackChunk[c];
                                 if (!Array.isArray(chunk) || chunk.length < 2) continue;
@@ -583,7 +447,6 @@
 
                                         if (isPlaybackManager(mod)) {
                                             found = mod;
-                                            console.log('[UnifiedLibrary] playbackManager found at module:', modId, '(direct export)');
                                             break;
                                         }
 
@@ -593,33 +456,24 @@
                                                 var exp = mod[exports[e]];
                                                 if (isPlaybackManager(exp)) {
                                                     found = exp;
-                                                    console.log('[UnifiedLibrary] playbackManager found at module:', modId, 'export:', exports[e]);
                                                     break;
                                                 }
-                                            } catch (ex) { }
+                                            } catch(ex) {}
                                         }
-                                    } catch (err) { }
+                                    } catch(err) {}
                                 }
                             }
                         }
                     ]);
-                } catch (e) {
+                } catch(e) {
                     console.warn('[UnifiedLibrary] webpack search failed:', e);
                 }
 
                 _playbackManagerSearchDone = true;
                 _playbackManagerCache = found;
-
-                if (found) {
-                    console.log('[UnifiedLibrary] playbackManager extracted successfully');
-                } else {
-                    console.warn('[UnifiedLibrary] playbackManager not found in any webpack module');
-                }
-
                 return found;
             }
 
-            /* ===== Воспроизведение через нативный плеер Jellyfin ===== */
             function playItem(id) {
                 var c = api();
                 if (!c) {
@@ -630,12 +484,11 @@
                 var pm = getPlaybackManager();
 
                 if (!pm || typeof pm.play !== 'function') {
-                    console.warn('[UnifiedLibrary] playbackManager not available, opening details page');
                     openDetails(id);
                     return;
                 }
 
-                c.getItem(state.userId, id).then(function (item) {
+                c.getItem(state.userId, id).then(function(item) {
                     if (!item) {
                         openDetails(id);
                         return;
@@ -651,19 +504,19 @@
                                     : 0
                             });
                         } else {
-                            console.warn('[UnifiedLibrary] Item cannot be played, opening details');
                             openDetails(id);
                         }
-                    } catch (e) {
+                    } catch(e) {
                         console.error('[UnifiedLibrary] play() error:', e);
                         openDetails(id);
                     }
-                }).catch(function (err) {
+                }).catch(function(err) {
                     console.error('[UnifiedLibrary] getItem error:', err);
                     openDetails(id);
                 });
             }
 
+            /* ===== Создание карточки: используем ТОЛЬКО классы Jellyfin ===== */
             function createCard(item) {
                 var card = document.createElement('div');
                 card.className = 'card portraitCard card-hoverable';
@@ -676,62 +529,87 @@
                 scalable.className = 'cardScalable';
 
                 var padder = document.createElement('div');
-                padder.className = 'cardPadder';
+                padder.className = 'cardPadder cardPadder-portrait';
                 scalable.appendChild(padder);
 
-                var imgC = document.createElement('div');
-                imgC.className = 'cardImage';
+                // === КОНТЕЙНЕР изображения ===
+                var imgContainer = document.createElement('div');
+                imgContainer.className = 'cardImageContainer cardContent';
+
                 if (item.ImageTags && item.ImageTags.Primary) {
-                    var img = document.createElement('img');
-                    img.src = '/Items/' + item.Id + '/Images/Primary?maxWidth=400&tag=' + encodeURIComponent(item.ImageTags.Primary);
-                    img.loading = 'lazy';
-                    img.alt = item.Name || '';
-                    imgC.appendChild(img);
+                    // Нативный подход Jellyfin: background-image + cover (центрирует постер)
+                    var imageUrl = '/Items/' + item.Id + '/Images/Primary?maxWidth=400&tag=' + encodeURIComponent(item.ImageTags.Primary);
+                    imgContainer.style.backgroundImage = 'url("' + imageUrl + '")';
+                    imgContainer.setAttribute('role', 'img');
+                    imgContainer.setAttribute('aria-label', item.Name || '');
                 } else {
                     var ic = document.createElement('span');
-                    ic.className = 'material-icons cardImageIcon';
-                    ic.textContent = 'movie';
-                    imgC.appendChild(ic);
+                    ic.className = 'cardImageIcon material-icons movie';
+                    ic.setAttribute('aria-hidden', 'true');
+                    imgContainer.appendChild(ic);
                 }
-                scalable.appendChild(imgC);
+                scalable.appendChild(imgContainer);
 
+                // === Кнопка Play (угловая) — ТОЧНЫЕ классы оригинального cardBuilder ===
                 var overlay = document.createElement('div');
-                overlay.className = 'cardOverlayContainer';
+                overlay.className = 'cardOverlayContainer itemAction';
+                overlay.setAttribute('data-action', 'link');
+
                 var obr = document.createElement('div');
                 obr.className = 'cardOverlayButton-br';
+
                 var pb = document.createElement('button');
-                pb.className = 'cardOverlayButton itemAction';
+                pb.className = 'cardOverlayButton cardOverlayButton-hover itemAction paper-icon-button-light';
                 pb.title = 'Воспроизвести';
-                pb.setAttribute('is', 'paper-icon-button-light');
                 pb.setAttribute('data-action', 'play');
                 pb.setAttribute('data-id', item.Id);
                 pb.setAttribute('data-serverid', state.serverId || '');
                 pb.setAttribute('data-type', item.Type || 'Movie');
+
                 var pi = document.createElement('span');
-                pi.className = 'material-icons play_arrow';
+                pi.className = 'material-icons cardOverlayButtonIcon cardOverlayButtonIcon-hover play_arrow';
                 pi.setAttribute('aria-hidden', 'true');
                 pb.appendChild(pi);
+
                 pb.addEventListener('click', function (e) {
                     e.stopPropagation();
                     e.preventDefault();
                     playItem(item.Id);
                 });
+
                 obr.appendChild(pb);
                 overlay.appendChild(obr);
                 scalable.appendChild(overlay);
 
                 box.appendChild(scalable);
 
+                // === Footer с текстом (как в оригинале) ===
+                var footer = document.createElement('div');
+                footer.className = 'cardFooter';
+
                 var t1 = document.createElement('div');
-                t1.className = 'cardText cardText-first';
-                t1.textContent = item.Name || '';
-                box.appendChild(t1);
+                t1.className = 'cardText cardText-first cardTextCentered';
+                var bdi1 = document.createElement('bdi');
+                var titleLink = document.createElement('a');
+                titleLink.href = '#!/details?id=' + item.Id;
+                titleLink.className = 'itemAction textActionButton';
+                titleLink.title = item.Name || '';
+                titleLink.setAttribute('data-action', 'link');
+                titleLink.setAttribute('data-id', item.Id);
+                titleLink.textContent = item.Name || '';
+                titleLink.addEventListener('click', function (e) { e.stopPropagation(); });
+                bdi1.appendChild(titleLink);
+                t1.appendChild(bdi1);
+                footer.appendChild(t1);
 
                 var t2 = document.createElement('div');
-                t2.className = 'cardText cardText-secondary';
-                t2.textContent = item.ProductionYear ? String(item.ProductionYear) : '';
-                box.appendChild(t2);
+                t2.className = 'cardText cardText-secondary cardTextCentered';
+                var bdi2 = document.createElement('bdi');
+                bdi2.textContent = item.ProductionYear ? String(item.ProductionYear) : '';
+                t2.appendChild(bdi2);
+                footer.appendChild(t2);
 
+                box.appendChild(footer);
                 card.appendChild(box);
 
                 (function (id) {
